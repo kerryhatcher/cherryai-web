@@ -1,4 +1,4 @@
-import type { ChatMessage, Session, WikiEntry, WikiListItem } from "@/types";
+import type { ChatMessage, FeedbackEntry, FeedbackListItem, Session, WikiEntry, WikiListItem } from "@/types";
 
 const SESSIONS_KEY = "cherryai:sessions";
 const MAX_CACHED_MESSAGES = 50;
@@ -8,6 +8,10 @@ const messagesKey = (sessionId: string) => `cherryai:messages:${sessionId}`;
 const WIKI_LIST_KEY = "cherryai:wiki:list";
 const WIKI_ENTRIES_KEY = "cherryai:wiki:entries";
 const MAX_CACHED_WIKI_ENTRIES = 20;
+
+const FEEDBACK_LIST_KEY = "cherryai:feedback:list";
+const FEEDBACK_ENTRIES_KEY = "cherryai:feedback:entries";
+const MAX_CACHED_FEEDBACK_ENTRIES = 20;
 
 function readJSON<T>(key: string, fallback: T): T {
   try {
@@ -70,5 +74,36 @@ export function removeCachedWikiEntry(slug: string): void {
   writeJSON(
     WIKI_ENTRIES_KEY,
     existing.filter((cached) => cached.slug !== slug),
+  );
+}
+
+export function cacheFeedbackList(entries: FeedbackListItem[]): void {
+  writeJSON(FEEDBACK_LIST_KEY, entries);
+}
+
+export function getCachedFeedbackList(): FeedbackListItem[] {
+  return readJSON(FEEDBACK_LIST_KEY, []);
+}
+
+/** Keeps the last `MAX_CACHED_FEEDBACK_ENTRIES` viewed entries, most-recent first. */
+export function cacheFeedbackEntry(entry: FeedbackEntry): void {
+  const existing = readJSON<FeedbackEntry[]>(FEEDBACK_ENTRIES_KEY, []);
+  const next = [entry, ...existing.filter((cached) => cached.id !== entry.id)].slice(
+    0,
+    MAX_CACHED_FEEDBACK_ENTRIES,
+  );
+  writeJSON(FEEDBACK_ENTRIES_KEY, next);
+}
+
+export function getCachedFeedbackEntry(id: number): FeedbackEntry | null {
+  const existing = readJSON<FeedbackEntry[]>(FEEDBACK_ENTRIES_KEY, []);
+  return existing.find((cached) => cached.id === id) ?? null;
+}
+
+export function removeCachedFeedbackEntry(id: number): void {
+  const existing = readJSON<FeedbackEntry[]>(FEEDBACK_ENTRIES_KEY, []);
+  writeJSON(
+    FEEDBACK_ENTRIES_KEY,
+    existing.filter((cached) => cached.id !== id),
   );
 }
