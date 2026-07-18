@@ -11,7 +11,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useFeedbackEntry } from "@/hooks/useFeedbackEntry";
 import { formatRelativeTime } from "@/lib/relativeTime";
 import { FEEDBACK_STATUSES, priorityBadge, statusBadge, typeBadge } from "@/lib/feedbackBadges";
-import type { FeedbackStatus } from "@/types";
+import type { FeedbackJobStage, FeedbackStatus } from "@/types";
+
+const JOB_STAGE_LABEL: Record<FeedbackJobStage, string> = {
+  triage: "Triage",
+  investigate: "Investigate",
+  plan: "Plan",
+};
 
 interface FeedbackViewProps {
   isOnline: boolean;
@@ -42,7 +48,22 @@ export function FeedbackView({ isOnline }: FeedbackViewProps) {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [statusSaving, setStatusSaving] = useState(false);
-  const { state, remove, updateStatus } = useFeedbackEntry({ id: Number.isNaN(id) ? undefined : id, isOnline });
+  const [jobActionError, setJobActionError] = useState<string | null>(null);
+  const [jobActionPending, setJobActionPending] = useState<FeedbackJobStage | null>(null);
+  const { state, remove, updateStatus, startJob } = useFeedbackEntry({
+    id: Number.isNaN(id) ? undefined : id,
+    isOnline,
+  });
+
+  const locked = state.status === "found" && state.entry.job_status === "running";
+
+  const handleRunJob = async (stage: FeedbackJobStage) => {
+    setJobActionError(null);
+    setJobActionPending(stage);
+    const result = await startJob(stage);
+    setJobActionPending(null);
+    if (!result.ok) setJobActionError(result.error);
+  };
 
   const sidebar = (
     <Sidebar
@@ -83,13 +104,26 @@ export function FeedbackView({ isOnline }: FeedbackViewProps) {
     <div className="flex items-center gap-2">
       {isOnline ? (
         <>
-          <Button asChild size="sm" variant="outline" className="gap-1.5">
-            <Link to={`/feedback/${idParam}/edit`}>
+          {locked ? (
+            <Button size="sm" variant="outline" className="gap-1.5" disabled>
               <Pencil className="size-3.5" />
               Edit
-            </Link>
-          </Button>
-          <Button size="sm" variant="destructive" className="gap-1.5" onClick={handleDelete} disabled={deleting}>
+            </Button>
+          ) : (
+            <Button asChild size="sm" variant="outline" className="gap-1.5">
+              <Link to={`/feedback/${idParam}/edit`}>
+                <Pencil className="size-3.5" />
+                Edit
+              </Link>
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="destructive"
+            className="gap-1.5"
+            onClick={handleDelete}
+            disabled={deleting || locked}
+          >
             <Trash2 className="size-3.5" />
             {deleting ? "Deleting…" : "Delete"}
           </Button>
@@ -161,7 +195,7 @@ export function FeedbackView({ isOnline }: FeedbackViewProps) {
             <div className="mt-3 flex flex-wrap items-center gap-1.5">
               <Badge {...typeBadge(state.entry.type)} />
 
-              {isOnline ? (
+              {isOnline && !locked ? (
                 <select
                   value={state.entry.status}
                   onChange={(event) => void handleStatusChange(event.target.value as FeedbackStatus)}
@@ -195,9 +229,52 @@ export function FeedbackView({ isOnline }: FeedbackViewProps) {
               <span className="ml-1 text-xs text-muted-foreground">
                 Updated {formatRelativeTime(state.entry.updated_at)}
               </span>
+
+              {state.entry.job_status === "running" && (
+                <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
+                  {state.entry.job_stage ? JOB_STAGE_LABEL[state.entry.job_stage] : "Job"} running
+                  {state.entry.job_id ? ` · ${state.entry.job_id.slice(0, 8)}` : ""}
+                </span>
+              )}
+              {state.entry.job_status === "failed" && (
+                <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
+                  {state.entry.job_stage ? JOB_STAGE_LABEL[state.entry.job_stage] : "Job"} failed
+                  {state.entry.job_error ? `: ${state.entry.job_error}` : ""}
+                </span>
+              )}
             </div>
 
+            {isOnline && (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void handleRunJob("triage")}
+                  disabled={locked || jobActionPending !== null}
+                >
+                  {jobActionPending === "triage" ? "Starting…" : "Re-run triage"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void handleRunJob("investigate")}
+                  disabled={locked || jobActionPending !== null}
+                >
+                  {jobActionPending === "investigate" ? "Starting…" : "Investigate"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void handleRunJob("plan")}
+                  disabled={locked || jobActionPending !== null}
+                >
+                  {jobActionPending === "plan" ? "Starting…" : "Plan"}
+                </Button>
+              </div>
+            )}
+
             {statusError && <p className="mt-2 text-sm text-destructive">{statusError}</p>}
+            {jobActionError && <p className="mt-2 text-sm text-destructive">{jobActionError}</p>}
             {deleteError && <p className="mt-3 text-sm text-destructive">{deleteError}</p>}
 
             <Section title="Description" content={state.entry.body} />

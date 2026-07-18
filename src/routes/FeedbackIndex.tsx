@@ -29,7 +29,14 @@ function plainSnippet(html: string): string {
   return html.replace(/<[^>]+>/g, "");
 }
 
-type Row = { id: number; title: string; type: FeedbackType; status: FeedbackStatus; priority: FeedbackPriority } & (
+type Row = {
+  id: number;
+  title: string;
+  type: FeedbackType;
+  status: FeedbackStatus;
+  priority: FeedbackPriority;
+  jobRunning: boolean;
+} & (
   | { kind: "list"; tags: string[]; updatedAt: string }
   | { kind: "search"; snippet: string }
 );
@@ -107,6 +114,7 @@ export function FeedbackIndex({ isOnline }: FeedbackIndexProps) {
           type: r.type,
           status: r.status,
           priority: r.priority,
+          jobRunning: false,
           snippet: plainSnippet(r.snippet),
         }),
       )
@@ -118,6 +126,7 @@ export function FeedbackIndex({ isOnline }: FeedbackIndexProps) {
           type: e.type,
           status: e.status,
           priority: e.priority,
+          jobRunning: e.job_status === "running",
           tags: e.tags,
           updatedAt: e.updated_at,
         }),
@@ -211,6 +220,13 @@ export function FeedbackIndex({ isOnline }: FeedbackIndexProps) {
                   <div className="flex min-w-0 items-center gap-2">
                     <span className="shrink-0 text-xs font-medium text-muted-foreground">#{row.id}</span>
                     <h3 className="truncate text-sm font-medium text-foreground">{row.title}</h3>
+                    {row.jobRunning && (
+                      <span
+                        className="size-1.5 shrink-0 animate-pulse rounded-full bg-amber-500"
+                        title="AI workflow running"
+                        aria-label="AI workflow running"
+                      />
+                    )}
                   </div>
                   {row.kind === "list" && (
                     <span className="shrink-0 text-xs text-muted-foreground">
