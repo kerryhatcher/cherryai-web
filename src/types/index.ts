@@ -46,6 +46,11 @@ export type FeedbackType = "bug" | "feature" | "user_story";
 export type FeedbackStatus = "open" | "in_progress" | "resolved" | "closed" | "wontfix";
 export type FeedbackPriority = "low" | "medium" | "high" | "critical";
 
+/** AI workflow stage — triage runs automatically on create and is manually re-runnable. */
+export type FeedbackJobStage = "triage" | "investigate" | "plan";
+/** `running` while a job task is in flight; `failed` persists the error until the next job starts; null = idle. */
+export type FeedbackJobStatus = "running" | "failed";
+
 /** Row shape returned by `GET /api/feedback` — no markdown fields. */
 export interface FeedbackListItem {
   id: number;
@@ -55,6 +60,10 @@ export interface FeedbackListItem {
   status: FeedbackStatus;
   priority: FeedbackPriority;
   updated_at: string;
+  job_stage: FeedbackJobStage | null;
+  job_status: FeedbackJobStatus | null;
+  job_id: string | null;
+  job_error: string | null;
 }
 
 /** Full entry shape returned by `GET/POST/PUT /api/feedback/...`. */
@@ -70,6 +79,10 @@ export interface FeedbackEntry {
   plan: string;
   created_at: string;
   updated_at: string;
+  job_stage: FeedbackJobStage | null;
+  job_status: FeedbackJobStatus | null;
+  job_id: string | null;
+  job_error: string | null;
 }
 
 /** One hit from `GET /api/feedback/search?q=`. */

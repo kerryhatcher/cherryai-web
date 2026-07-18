@@ -1,6 +1,7 @@
 import { API_URL } from "@/lib/config";
 import type {
   FeedbackEntry,
+  FeedbackJobStage,
   FeedbackListItem,
   FeedbackPriority,
   FeedbackSearchResult,
@@ -108,3 +109,50 @@ export function updateFeedbackEntry(id: number, input: UpdateFeedbackInput): Pro
 export function deleteFeedbackEntry(id: number): Promise<void> {
   return request(`/api/feedback/${id}`, { method: "DELETE" });
 }
+
+export interface StartJobResult {
+  job_id: string;
+  stage: FeedbackJobStage;
+}
+
+/** Thrown for 409s on the job-trigger endpoints — carries the server's `detail` message verbatim. */
+export class WorkflowJobConflictError extends Error {
+  constructor(detail: string) {
+    super(detail);
+    this.name = "WorkflowJobConflictError";
+  }
+}
+
+async function startJob(id: number, stage: FeedbackJobStage): Promise<StartJobResult> {
+  const path = `/api/feedback/${id}/${stage}`;
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch {
+    throw new ApiError(`Network request to ${path} failed`);
+  }
+
+  if (res.status === 409) {
+    let detail = "Entry is locked by a running job";
+    try {
+      const body = (await res.json()) as { detail?: string };
+      if (body.detail) detail = body.detail;
+    } catch {
+      // Response body wasn't JSON — fall back to the generic message above.
+    }
+    throw new WorkflowJobConflictError(detail);
+  }
+
+  if (!res.ok) {
+    throw new ApiError(`${path} responded with ${res.status}`, res.status);
+  }
+
+  return (await res.json()) as StartJobResult;
+}
+
+export const triageFeedbackEntry = (id: number): Promise<StartJobResult> => startJob(id, "triage");
+export const investigateFeedbackEntry = (id: number): Promise<StartJobResult> => startJob(id, "investigate");
+export const planFeedbackEntry = (id: number): Promise<StartJobResult> => startJob(id, "plan");
