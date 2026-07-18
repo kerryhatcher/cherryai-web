@@ -25,7 +25,7 @@ A modern, single-page web application for chatting with the CherryAI backend AI 
 ### Prerequisites
 
 - **Node.js 18+** (for npm)
-- **CherryAI API running** on `http://localhost:8000` (or configured via `VITE_API_URL`)
+- **CherryAI API running** (proxied same-origin at `/api`; target set by `API_PROXY_TARGET`, default `http://localhost:8000`)
 
 ### Installation
 
@@ -61,17 +61,19 @@ A modern, single-page web application for chatting with the CherryAI backend AI 
 
 ### API Endpoint
 
-By default, the app expects the API at `http://localhost:8000`. To use a different endpoint:
+By default the app calls the API **same-origin** at `/api/...`:
 
-1. Create a `.env.local` file in the project root:
+- In dev and preview, the Vite server proxies `/api` to the backend —
+  `http://localhost:8000` unless overridden with `API_PROXY_TARGET` (set it in
+  the environment or a `.env.local` file, e.g.
+  `API_PROXY_TARGET=http://localhost:8008`).
+- In production, host the static bundle behind a reverse proxy that routes
+  `/api` to the backend (this is what makes the PWA work over HTTPS, e.g. via
+  `tailscale serve`).
 
-   ```env
-   VITE_API_URL=https://api.example.com
-   ```
-
-2. Restart the dev server or rebuild.
-
-The app reads `VITE_API_URL` at build time and embeds it into the bundle.
+To call an API on a different origin instead, set `VITE_API_URL` (e.g.
+`VITE_API_URL=https://api.example.com`) — it is read at build time and embedded
+into the bundle; the API's CORS allowlist must then include the app's origin.
 
 ## Code Structure
 
