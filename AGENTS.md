@@ -26,6 +26,11 @@ When working in this folder, all git operations (status, commit, push) apply to 
 
 ## Development Standards
 
+### Python (tooling/scripts)
+
+- **Never use pyenv.** Do not rely on pyenv shims or `.python-version` interpreters.
+- **`python3` must only ever be invoked via `uv`** (`uv run python3 ...`); never call system `python`/`python3` directly.
+
 ### Code Quality
 
 - **Always lint before committing.** Run `npm run lint` and fix issues automatically when possible.
