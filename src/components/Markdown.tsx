@@ -46,8 +46,18 @@ const LinkRenderer: Components["a"] = ({ node: _node, href, children, ...props }
 
 const components: Components = { a: LinkRenderer };
 
+/**
+ * react-markdown (v10, no rehype-raw) doesn't drop raw HTML — it renders it as escaped text, so
+ * `<!-- cherryai:triage -->` marker comments would otherwise show up verbatim. Comments carry no
+ * visible content in any Markdown renderer, so strip them unconditionally before parsing.
+ */
+function stripHtmlComments(text: string): string {
+  return text.replace(/<!--[\s\S]*?-->/g, "");
+}
+
 export function Markdown({ content, className, wikilinks, feedbackLinks }: MarkdownProps) {
-  const text = feedbackLinks ? expandFeedbackLinks(content) : wikilinks ? expandWikilinks(content) : content;
+  const expanded = feedbackLinks ? expandFeedbackLinks(content) : wikilinks ? expandWikilinks(content) : content;
+  const text = stripHtmlComments(expanded);
   return (
     <div className={className}>
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
