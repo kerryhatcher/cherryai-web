@@ -1,6 +1,7 @@
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useNavigate } from "react-router";
+import { expandFeedbackLinks } from "@/lib/feedbacklinks";
 import { expandWikilinks } from "@/lib/wikilinks";
 
 interface MarkdownProps {
@@ -8,6 +9,8 @@ interface MarkdownProps {
   className?: string;
   /** Expand `[[Page Title]]` wikilinks before rendering — wiki bodies only. */
   wikilinks?: boolean;
+  /** Expand wikilinks AND bare `#42` issue references — feedback content only. */
+  feedbackLinks?: boolean;
 }
 
 /**
@@ -43,8 +46,8 @@ const LinkRenderer: Components["a"] = ({ node: _node, href, children, ...props }
 
 const components: Components = { a: LinkRenderer };
 
-export function Markdown({ content, className, wikilinks }: MarkdownProps) {
-  const text = wikilinks ? expandWikilinks(content) : content;
+export function Markdown({ content, className, wikilinks, feedbackLinks }: MarkdownProps) {
+  const text = feedbackLinks ? expandFeedbackLinks(content) : wikilinks ? expandWikilinks(content) : content;
   return (
     <div className={className}>
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
