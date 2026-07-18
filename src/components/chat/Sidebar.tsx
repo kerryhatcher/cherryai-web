@@ -1,4 +1,4 @@
-import { BookOpen, MessageSquare, Plus } from "lucide-react";
+import { BookOpen, ListChecks, MessageSquare, Plus } from "lucide-react";
 import { Link, NavLink } from "react-router";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import type { Session } from "@/types";
 
 interface SidebarProps {
-  section: "chat" | "wiki";
+  section: "chat" | "wiki" | "feedback";
   sessions: Session[];
   activeSessionId: string | null;
   onSelect: (id: string) => void;
@@ -39,7 +39,7 @@ export function Sidebar({
       </div>
 
       <div className="px-3 pb-4">
-        <div className="grid grid-cols-2 gap-1 rounded-xl bg-sidebar-accent/40 p-1">
+        <div className="grid grid-cols-3 gap-1 rounded-xl bg-sidebar-accent/40 p-1">
           <NavLink
             to="/"
             end
@@ -64,6 +64,18 @@ export function Sidebar({
           >
             <BookOpen className="size-3.5" />
             Wiki
+          </NavLink>
+          <NavLink
+            to="/feedback"
+            className={cn(
+              "flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-medium transition-all duration-200",
+              section === "feedback"
+                ? "bg-sidebar text-sidebar-accent-foreground shadow-sm"
+                : "text-sidebar-foreground/60 hover:text-sidebar-foreground",
+            )}
+          >
+            <ListChecks className="size-3.5" />
+            Feedback
           </NavLink>
         </div>
       </div>
@@ -121,7 +133,7 @@ export function Sidebar({
             </nav>
           </ScrollArea>
         </>
-      ) : (
+      ) : section === "wiki" ? (
         <>
           <div className="px-3 pb-4">
             <Button
@@ -150,6 +162,38 @@ export function Sidebar({
               }
             >
               All pages
+            </NavLink>
+          </nav>
+        </>
+      ) : (
+        <>
+          <div className="px-3 pb-4">
+            <Button
+              asChild
+              className="group w-full justify-start gap-2 rounded-xl bg-cherry font-medium text-primary-foreground shadow-[0_6px_20px_-8px_color-mix(in_oklch,var(--cherry)_75%,transparent)] transition-all hover:bg-cherry-bright hover:shadow-[0_10px_28px_-8px_color-mix(in_oklch,var(--cherry)_85%,transparent)] aria-disabled:pointer-events-none aria-disabled:opacity-50 aria-disabled:shadow-none"
+              aria-disabled={disabled}
+            >
+              <Link to={disabled ? "#" : "/feedback/new"} tabIndex={disabled ? -1 : undefined}>
+                <Plus className="size-4 transition-transform group-hover:rotate-90" />
+                New feedback
+              </Link>
+            </Button>
+          </div>
+
+          <nav className="flex flex-1 flex-col gap-0.5 px-3 pb-4">
+            <NavLink
+              to="/feedback"
+              end
+              className={({ isActive }) =>
+                cn(
+                  "group relative truncate rounded-lg py-2 pl-4 pr-3 text-left text-sm transition-all duration-200",
+                  isActive
+                    ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
+                )
+              }
+            >
+              All feedback
             </NavLink>
           </nav>
         </>
