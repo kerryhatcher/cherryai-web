@@ -1,6 +1,5 @@
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { CherryMark } from "@/components/CherryMark";
+import { Markdown } from "@/components/Markdown";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/types";
 
@@ -34,11 +33,10 @@ export function MessageBubble({ message, streaming }: MessageBubbleProps) {
           streaming && "streaming-caret",
         )}
       >
-        <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1.5 prose-headings:mt-3 prose-headings:mb-1.5 prose-pre:my-2.5 prose-pre:overflow-x-auto prose-pre:rounded-xl prose-pre:bg-muted prose-pre:text-foreground prose-code:rounded prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:text-cherry prose-code:before:content-[''] prose-code:after:content-[''] prose-a:text-cherry prose-a:underline-offset-2 prose-strong:text-foreground">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {message.content}
-          </ReactMarkdown>
-        </div>
+        <Markdown
+          content={message.content}
+          className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1.5 prose-headings:mt-3 prose-headings:mb-1.5 prose-pre:my-2.5 prose-pre:overflow-x-auto prose-pre:rounded-xl prose-pre:bg-muted prose-pre:text-foreground prose-code:rounded prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:text-cherry prose-code:before:content-[''] prose-code:after:content-[''] prose-a:text-cherry prose-a:underline-offset-2 prose-strong:text-foreground"
+        />
       </div>
     </div>
   );
