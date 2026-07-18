@@ -6,6 +6,16 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // Listen on all interfaces so the app is reachable over Tailscale;
+  // `.ts.net` permits any tailnet MagicDNS hostname (raw IPs always pass).
+  server: {
+    host: true,
+    allowedHosts: ['.ts.net'],
+  },
+  preview: {
+    host: true,
+    allowedHosts: ['.ts.net'],
+  },
   plugins: [
     react(),
     tailwindcss(),
