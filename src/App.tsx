@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { CherryMark } from "@/components/CherryMark";
 import { ChatThread } from "@/components/chat/ChatThread";
 import { Composer } from "@/components/chat/Composer";
 import { OfflineBanner } from "@/components/chat/OfflineBanner";
@@ -17,19 +18,35 @@ function App() {
     activeSessionId,
     setActiveSessionId,
     newSession,
+    refresh: refreshSessions,
     loading: sessionsLoading,
   } = useSessions({ isOnline });
+
+  // After a session's first reply the backend assigns it a real title, so
+  // refresh the list to replace the "New chat" placeholder in the sidebar.
+  const handleExchangeComplete = useCallback(
+    ({ firstInSession }: { firstInSession: boolean }) => {
+      if (firstInSession) void refreshSessions();
+    },
+    [refreshSessions],
+  );
+
   const {
     messages,
     loading: messagesLoading,
     send,
     streamingText,
     isSending,
-  } = useMessages({ sessionId: activeSessionId, isOnline });
+  } = useMessages({
+    sessionId: activeSessionId,
+    isOnline,
+    onExchangeComplete: handleExchangeComplete,
+  });
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const activeSession = sessions.find((session) => session.id === activeSessionId);
   const composerDisabled = !isOnline || isSending || !activeSessionId;
+  const canSend = isOnline && !isSending && Boolean(activeSessionId);
 
   const handleSelect = (id: string) => {
     setActiveSessionId(id);
@@ -54,11 +71,13 @@ function App() {
           onSelect={handleSelect}
           onNewChat={handleNewChat}
           disabled={!isOnline}
+          isOnline={isOnline}
         />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-2 border-b border-border p-3 md:hidden">
+        {/* Mobile header */}
+        <header className="flex items-center gap-2 border-b border-border bg-background/80 px-3 py-2.5 backdrop-blur-md md:hidden">
           <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" aria-label="Open sessions">
@@ -72,12 +91,23 @@ function App() {
                 onSelect={handleSelect}
                 onNewChat={handleNewChat}
                 disabled={!isOnline}
+                isOnline={isOnline}
               />
             </SheetContent>
           </Sheet>
-          <span className="truncate text-sm font-medium">
-            {activeSession?.title || "CherryAI"}
+          <span className="flex items-center gap-1.5 truncate text-sm font-semibold tracking-tight">
+            <span className="text-cherry">
+              <CherryMark className="size-4" />
+            </span>
+            <span className="truncate">{activeSession?.title || "CherryAI"}</span>
           </span>
+        </header>
+
+        {/* Desktop header */}
+        <header className="hidden items-center justify-between border-b border-border px-6 py-3 md:flex">
+          <h2 className="truncate text-sm font-medium text-foreground/90">
+            {activeSession?.title || "New conversation"}
+          </h2>
         </header>
 
         {!isOnline && <OfflineBanner />}
@@ -86,9 +116,17 @@ function App() {
           messages={messages}
           streamingText={streamingText}
           loading={sessionsLoading || messagesLoading}
+          isSending={isSending}
+          onSuggestion={send}
+          canSend={canSend}
         />
 
-        <Composer onSend={send} onInteract={handleInteract} disabled={composerDisabled} />
+        <Composer
+          onSend={send}
+          onInteract={handleInteract}
+          disabled={composerDisabled}
+          offline={!isOnline}
+        />
       </div>
     </div>
   );
