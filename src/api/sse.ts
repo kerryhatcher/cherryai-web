@@ -19,6 +19,10 @@ export async function* parseSSEStream(
     const { done, value } = await reader.read();
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
+    // Per the SSE spec, lines may end in \r\n (sse-starlette does this).
+    // Normalize the whole buffer each append so a \r\n pair split across
+    // two reads is still collapsed once its second half arrives.
+    buffer = buffer.replace(/\r\n/g, "\n");
 
     let boundary = buffer.indexOf("\n\n");
     while (boundary !== -1) {
