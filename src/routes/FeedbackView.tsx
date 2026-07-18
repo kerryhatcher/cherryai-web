@@ -6,18 +6,13 @@ import { Sidebar } from "@/components/chat/Sidebar";
 import { OfflineBanner } from "@/components/chat/OfflineBanner";
 import { Markdown } from "@/components/Markdown";
 import { Badge } from "@/components/feedback/Badge";
+import { JobStatusChip } from "@/components/feedback/JobStatusChip";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFeedbackEntry } from "@/hooks/useFeedbackEntry";
 import { formatRelativeTime } from "@/lib/relativeTime";
 import { FEEDBACK_STATUSES, priorityBadge, statusBadge, typeBadge } from "@/lib/feedbackBadges";
 import type { FeedbackJobStage, FeedbackStatus } from "@/types";
-
-const JOB_STAGE_LABEL: Record<FeedbackJobStage, string> = {
-  triage: "Triage",
-  investigate: "Investigate",
-  plan: "Plan",
-};
 
 interface FeedbackViewProps {
   isOnline: boolean;
@@ -230,17 +225,13 @@ export function FeedbackView({ isOnline }: FeedbackViewProps) {
                 Updated {formatRelativeTime(state.entry.updated_at)}
               </span>
 
-              {state.entry.job_status === "running" && (
-                <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
-                  {state.entry.job_stage ? JOB_STAGE_LABEL[state.entry.job_stage] : "Job"} running
-                  {state.entry.job_id ? ` · ${state.entry.job_id.slice(0, 8)}` : ""}
-                </span>
-              )}
-              {state.entry.job_status === "failed" && (
-                <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
-                  {state.entry.job_stage ? JOB_STAGE_LABEL[state.entry.job_stage] : "Job"} failed
-                  {state.entry.job_error ? `: ${state.entry.job_error}` : ""}
-                </span>
+              {state.entry.job_status && (
+                <JobStatusChip
+                  stage={state.entry.job_stage}
+                  status={state.entry.job_status}
+                  jobId={state.entry.job_id}
+                  error={state.entry.job_error}
+                />
               )}
             </div>
 

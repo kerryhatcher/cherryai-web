@@ -1,4 +1,4 @@
-import type { FeedbackPriority, FeedbackStatus, FeedbackType } from "@/types";
+import type { FeedbackJobStage, FeedbackPriority, FeedbackStatus, FeedbackType } from "@/types";
 
 export interface BadgeTone {
   label: string;
@@ -57,6 +57,12 @@ export const priorityBadge = (priority: FeedbackPriority): BadgeTone => ({
   label: PRIORITY_LABEL[priority],
   tone: PRIORITY_TONE[priority],
 });
+
+export const JOB_STAGE_LABEL: Record<FeedbackJobStage, string> = {
+  triage: "Triage",
+  investigate: "Investigate",
+  plan: "Plan",
+};
 
 export const FEEDBACK_TYPES: FeedbackType[] = ["bug", "feature", "user_story"];
 export const FEEDBACK_STATUSES: FeedbackStatus[] = ["open", "in_progress", "resolved", "closed", "wontfix"];

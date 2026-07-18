@@ -1,17 +1,18 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import { Eye, Pencil } from "lucide-react";
 import { AppFrame } from "@/components/layout/AppFrame";
 import { Sidebar } from "@/components/chat/Sidebar";
 import { OfflineBanner } from "@/components/chat/OfflineBanner";
 import { Markdown } from "@/components/Markdown";
+import { JobStatusChip } from "@/components/feedback/JobStatusChip";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { createFeedbackEntry, updateFeedbackEntry } from "@/api/feedback";
+import { createFeedbackEntry, updateFeedbackEntry, WorkflowJobConflictError } from "@/api/feedback";
 import { useFeedbackEntry } from "@/hooks/useFeedbackEntry";
 import { FEEDBACK_PRIORITIES, FEEDBACK_STATUSES, FEEDBACK_TYPES, priorityBadge, statusBadge, typeBadge } from "@/lib/feedbackBadges";
 import { cn } from "@/lib/utils";
-import type { FeedbackPriority, FeedbackStatus, FeedbackType } from "@/types";
+import type { FeedbackEntry, FeedbackPriority, FeedbackStatus, FeedbackType } from "@/types";
 
 interface FeedbackEditorProps {
   mode: "create" | "edit";
@@ -49,6 +50,11 @@ export function FeedbackEditor({ mode, isOnline }: FeedbackEditorProps) {
     isOnline,
   });
   const initializedRef = useRef(false);
+
+  /** Non-null while an AI workflow job is running on the record being edited — the record is
+   * locked server-side (PUT would 409), so the form is replaced with a read-only notice. */
+  const lockedEntry: FeedbackEntry | null =
+    mode === "edit" && state.status === "found" && state.entry.job_status === "running" ? state.entry : null;
 
   const [title, setTitle] = useState("");
   const [tagsInput, setTagsInput] = useState("");
@@ -132,10 +138,14 @@ export function FeedbackEditor({ mode, isOnline }: FeedbackEditorProps) {
         });
         navigate(`/feedback/${entry.id}`);
       }
-    } catch {
+    } catch (err) {
       // Drafts (title, tags, type/priority/status, and all three markdown fields) are
       // intentionally left in place on failure so the user doesn't lose work.
-      setError("Couldn't save this entry. Check your connection and try again.");
+      setError(
+        err instanceof WorkflowJobConflictError
+          ? err.message
+          : "Couldn't save this entry. Check your connection and try again.",
+      );
     } finally {
       setSaving(false);
     }
@@ -177,6 +187,20 @@ export function FeedbackEditor({ mode, isOnline }: FeedbackEditorProps) {
             Couldn&apos;t find feedback at{" "}
             <code className="rounded bg-muted px-1 py-0.5 text-xs">/feedback/{idParam}</code> to edit.
           </p>
+        ) : lockedEntry ? (
+          <div className="flex flex-col items-center gap-3 py-16 text-center">
+            <JobStatusChip
+              stage={lockedEntry.job_stage}
+              status="running"
+              jobId={lockedEntry.job_id}
+              error={lockedEntry.job_error}
+            />
+            <p className="text-sm font-medium text-foreground">This entry is locked while an AI workflow runs.</p>
+            <p className="max-w-sm text-sm text-muted-foreground">Editing resumes once the job finishes.</p>
+            <Button asChild className="mt-2 gap-1.5 bg-cherry text-primary-foreground hover:bg-cherry-bright">
+              <Link to={`/feedback/${idParam}`}>Back to entry</Link>
+            </Button>
+          </div>
         ) : (
           <>
             <div className="flex flex-col gap-1.5">

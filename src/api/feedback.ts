@@ -29,6 +29,47 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
+/** Thrown for 409s on lock-aware endpoints — carries the server's `detail` message verbatim. */
+export class WorkflowJobConflictError extends Error {
+  constructor(detail: string) {
+    super(detail);
+    this.name = "WorkflowJobConflictError";
+  }
+}
+
+/** Like `request`, but a 409 is parsed for its `detail` body and thrown as `WorkflowJobConflictError`
+ * instead of the generic `ApiError` — used by endpoints a running job can lock (triage/investigate/plan
+ * triggers, PUT, DELETE). */
+async function requestLockAware<T>(path: string, init: RequestInit): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      ...init,
+      headers: { "Content-Type": "application/json", ...init.headers },
+    });
+  } catch {
+    throw new ApiError(`Network request to ${path} failed`);
+  }
+
+  if (res.status === 409) {
+    let detail = "Entry is locked by a running job";
+    try {
+      const body = (await res.json()) as { detail?: string };
+      if (body.detail) detail = body.detail;
+    } catch {
+      // Response body wasn't JSON — fall back to the generic message above.
+    }
+    throw new WorkflowJobConflictError(detail);
+  }
+
+  if (!res.ok) {
+    throw new ApiError(`${path} responded with ${res.status}`, res.status);
+  }
+
+  if (res.status === 204) return undefined as T;
+  return (await res.json()) as T;
+}
+
 export interface FeedbackFilters {
   type?: FeedbackType;
   status?: FeedbackStatus;
@@ -99,15 +140,17 @@ export async function getFeedbackEntry(id: number): Promise<GetFeedbackEntryResu
   return { found: true, entry };
 }
 
+/** 409s while a job is running on this entry — throws `WorkflowJobConflictError` with the server's detail. */
 export function updateFeedbackEntry(id: number, input: UpdateFeedbackInput): Promise<FeedbackEntry> {
-  return request(`/api/feedback/${id}`, {
+  return requestLockAware(`/api/feedback/${id}`, {
     method: "PUT",
     body: JSON.stringify(input),
   });
 }
 
+/** 409s while a job is running on this entry — throws `WorkflowJobConflictError` with the server's detail. */
 export function deleteFeedbackEntry(id: number): Promise<void> {
-  return request(`/api/feedback/${id}`, { method: "DELETE" });
+  return requestLockAware(`/api/feedback/${id}`, { method: "DELETE" });
 }
 
 export interface StartJobResult {
@@ -115,42 +158,8 @@ export interface StartJobResult {
   stage: FeedbackJobStage;
 }
 
-/** Thrown for 409s on the job-trigger endpoints — carries the server's `detail` message verbatim. */
-export class WorkflowJobConflictError extends Error {
-  constructor(detail: string) {
-    super(detail);
-    this.name = "WorkflowJobConflictError";
-  }
-}
-
-async function startJob(id: number, stage: FeedbackJobStage): Promise<StartJobResult> {
-  const path = `/api/feedback/${id}/${stage}`;
-  let res: Response;
-  try {
-    res = await fetch(`${API_URL}${path}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-    });
-  } catch {
-    throw new ApiError(`Network request to ${path} failed`);
-  }
-
-  if (res.status === 409) {
-    let detail = "Entry is locked by a running job";
-    try {
-      const body = (await res.json()) as { detail?: string };
-      if (body.detail) detail = body.detail;
-    } catch {
-      // Response body wasn't JSON — fall back to the generic message above.
-    }
-    throw new WorkflowJobConflictError(detail);
-  }
-
-  if (!res.ok) {
-    throw new ApiError(`${path} responded with ${res.status}`, res.status);
-  }
-
-  return (await res.json()) as StartJobResult;
+function startJob(id: number, stage: FeedbackJobStage): Promise<StartJobResult> {
+  return requestLockAware(`/api/feedback/${id}/${stage}`, { method: "POST" });
 }
 
 export const triageFeedbackEntry = (id: number): Promise<StartJobResult> => startJob(id, "triage");
