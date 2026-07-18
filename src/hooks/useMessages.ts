@@ -19,6 +19,8 @@ export interface UseMessagesResult {
   send: (content: string) => Promise<void>;
   streamingText: string;
   isSending: boolean;
+  /** Silently re-fetch the thread from the server (no loading spinner). */
+  reload: () => Promise<void>;
 }
 
 export function useMessages({
@@ -73,6 +75,20 @@ export function useMessages({
       cancelled = true;
     };
   }, [sessionId, isOnline]);
+
+  // Recovers replies that finished server-side while the page was suspended
+  // (iOS kills in-flight streams when the app is backgrounded).
+  const reload = useCallback(async () => {
+    if (!sessionId || sendingRef.current) return;
+    try {
+      const fetched = await getMessages(sessionId);
+      if (sendingRef.current) return;
+      setMessages(fetched);
+      cacheMessages(sessionId, fetched);
+    } catch {
+      // Ignore — the next successful fetch will recover.
+    }
+  }, [sessionId]);
 
   const send = useCallback(
     async (content: string) => {
@@ -131,5 +147,5 @@ export function useMessages({
     [sessionId],
   );
 
-  return { messages, loading, send, streamingText, isSending };
+  return { messages, loading, send, streamingText, isSending, reload };
 }

@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -37,12 +37,32 @@ function App() {
     send,
     streamingText,
     isSending,
+    reload: reloadMessages,
   } = useMessages({
     sessionId: activeSessionId,
     isOnline,
     onExchangeComplete: handleExchangeComplete,
   });
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  // iOS suspends the page (and kills in-flight streams) when the app is
+  // backgrounded. On return, pull fresh state from the server so replies that
+  // completed while suspended still appear. The short delay lets an aborted
+  // send settle before the thread is replaced.
+  useEffect(() => {
+    const onReturn = () => {
+      if (document.visibilityState !== "visible") return;
+      void retry();
+      void refreshSessions();
+      window.setTimeout(() => void reloadMessages(), 300);
+    };
+    document.addEventListener("visibilitychange", onReturn);
+    window.addEventListener("pageshow", onReturn);
+    return () => {
+      document.removeEventListener("visibilitychange", onReturn);
+      window.removeEventListener("pageshow", onReturn);
+    };
+  }, [retry, refreshSessions, reloadMessages]);
 
   const activeSession = sessions.find((session) => session.id === activeSessionId);
   const composerDisabled = !isOnline || isSending || !activeSessionId;
