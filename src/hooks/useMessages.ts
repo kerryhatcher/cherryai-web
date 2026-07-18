@@ -6,6 +6,11 @@ import type { ChatMessage } from "@/types";
 interface UseMessagesOptions {
   sessionId: string | null;
   isOnline: boolean;
+  /**
+   * Fired after an assistant reply completes. `firstInSession` is true for the
+   * opening exchange, when the backend assigns the session its real title.
+   */
+  onExchangeComplete?: (info: { firstInSession: boolean }) => void;
 }
 
 export interface UseMessagesResult {
@@ -16,12 +21,22 @@ export interface UseMessagesResult {
   isSending: boolean;
 }
 
-export function useMessages({ sessionId, isOnline }: UseMessagesOptions): UseMessagesResult {
+export function useMessages({
+  sessionId,
+  isOnline,
+  onExchangeComplete,
+}: UseMessagesOptions): UseMessagesResult {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [streamingText, setStreamingText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const sendingRef = useRef(false);
+
+  // Kept in refs so `send` can read the latest values without re-subscribing.
+  const messageCountRef = useRef(0);
+  messageCountRef.current = messages.length;
+  const onExchangeCompleteRef = useRef(onExchangeComplete);
+  onExchangeCompleteRef.current = onExchangeComplete;
 
   useEffect(() => {
     if (!sessionId) {
@@ -64,6 +79,7 @@ export function useMessages({ sessionId, isOnline }: UseMessagesOptions): UseMes
       if (!sessionId || !content.trim() || sendingRef.current) return;
       sendingRef.current = true;
       setIsSending(true);
+      const firstInSession = messageCountRef.current === 0;
 
       const userMessage: ChatMessage = {
         id: crypto.randomUUID(),
@@ -88,6 +104,7 @@ export function useMessages({ sessionId, isOnline }: UseMessagesOptions): UseMes
               return next;
             });
             setStreamingText("");
+            onExchangeCompleteRef.current?.({ firstInSession });
           },
         });
       } catch {

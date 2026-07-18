@@ -12,6 +12,7 @@ export interface UseSessionsResult {
   activeSessionId: string | null;
   setActiveSessionId: (id: string) => void;
   newSession: () => Promise<void>;
+  refresh: () => Promise<void>;
   loading: boolean;
 }
 
@@ -60,6 +61,22 @@ export function useSessions({ isOnline }: UseSessionsOptions): UseSessionsResult
     };
   }, [isOnline]);
 
+  /**
+   * Re-fetch the session list without disturbing the active selection. Used
+   * after a session's first message so the server-generated title (which
+   * replaces the placeholder "New chat") shows up in the sidebar.
+   */
+  const refresh = useCallback(async () => {
+    if (!isOnline) return;
+    try {
+      const fetched = await listSessions();
+      setSessions(fetched);
+      cacheSessions(fetched);
+    } catch {
+      // Keep the current list if the refresh fails.
+    }
+  }, [isOnline]);
+
   const newSession = useCallback(async () => {
     if (!isOnline) return;
     try {
@@ -75,5 +92,5 @@ export function useSessions({ isOnline }: UseSessionsOptions): UseSessionsResult
     }
   }, [isOnline]);
 
-  return { sessions, activeSessionId, setActiveSessionId, newSession, loading };
+  return { sessions, activeSessionId, setActiveSessionId, newSession, refresh, loading };
 }
