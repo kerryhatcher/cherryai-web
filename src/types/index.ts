@@ -19,6 +19,7 @@ export interface WikiListItem {
   slug: string;
   title: string;
   tags: string[];
+  folder: string;
   updated_at: string;
 }
 
