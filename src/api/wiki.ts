@@ -33,12 +33,14 @@ export interface CreateWikiInput {
   title: string;
   tags?: string[];
   body?: string;
+  folder?: string;
 }
 
 export interface UpdateWikiInput {
   title?: string;
   tags?: string[];
   body?: string;
+  folder?: string;
 }
 
 /** Duplicate slug on create — surfaced separately so the form can show an inline error. */
@@ -91,4 +93,12 @@ export function updateWikiEntry(slug: string, input: UpdateWikiInput): Promise<W
 
 export function deleteWikiEntry(slug: string): Promise<void> {
   return request(`/api/wiki/${encodeURIComponent(slug)}`, { method: "DELETE" });
+}
+
+/** Move a folder and everything under it. Resolves with the number of pages moved. */
+export function renameWikiFolder(from: string, to: string): Promise<{ moved: number }> {
+  return request("/api/wiki/folders/rename", {
+    method: "POST",
+    body: JSON.stringify({ from, to }),
+  });
 }

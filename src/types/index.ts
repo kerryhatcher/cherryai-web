@@ -30,6 +30,7 @@ export interface WikiEntry {
   title: string;
   tags: string[];
   body: string;
+  folder: string;
   created_at: string;
   updated_at: string;
 }
@@ -39,6 +40,7 @@ export interface WikiSearchResult {
   slug: string;
   title: string;
   tags: string[];
+  folder: string;
   snippet: string;
   rank: number;
 }
