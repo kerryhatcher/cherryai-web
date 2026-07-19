@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { BookOpen, ListChecks, MessageSquare, Plus } from "lucide-react";
 import { Link, NavLink } from "react-router";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,8 @@ interface SidebarProps {
   onNewChat: () => void;
   disabled?: boolean;
   isOnline?: boolean;
+  /** Wiki-only: the folder tree, rendered under "All pages". */
+  wikiTree?: ReactNode;
 }
 
 export function Sidebar({
@@ -24,6 +27,7 @@ export function Sidebar({
   onNewChat,
   disabled,
   isOnline = true,
+  wikiTree,
 }: SidebarProps) {
   return (
     <div className="flex h-full w-full flex-col bg-sidebar text-sidebar-foreground">
@@ -148,7 +152,7 @@ export function Sidebar({
             </Button>
           </div>
 
-          <nav className="flex flex-1 flex-col gap-0.5 px-3 pb-4">
+          <nav className="flex flex-col gap-0.5 px-3 pb-2">
             <NavLink
               to="/wiki"
               end
@@ -164,6 +168,7 @@ export function Sidebar({
               All pages
             </NavLink>
           </nav>
+          {wikiTree}
         </>
       ) : (
         <>

@@ -5,10 +5,12 @@ import { AppFrame } from "@/components/layout/AppFrame";
 import { Sidebar } from "@/components/chat/Sidebar";
 import { OfflineBanner } from "@/components/chat/OfflineBanner";
 import { Markdown } from "@/components/Markdown";
+import { WikiTree } from "@/components/wiki/WikiTree";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { createWikiEntry, updateWikiEntry, WikiTitleConflictError } from "@/api/wiki";
 import { useWikiEntry } from "@/hooks/useWikiEntry";
+import { useWikiList } from "@/hooks/useWikiList";
 import { cn } from "@/lib/utils";
 
 interface WikiEditorProps {
@@ -29,6 +31,7 @@ export function WikiEditor({ mode, isOnline }: WikiEditorProps) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const { state } = useWikiEntry({ slug: mode === "edit" ? slug : undefined, isOnline });
+  const { entries, refresh } = useWikiList({ isOnline });
   const initializedRef = useRef(false);
 
   const [title, setTitle] = useState(() => (mode === "create" ? (searchParams.get("title") ?? "") : ""));
@@ -65,6 +68,14 @@ export function WikiEditor({ mode, isOnline }: WikiEditorProps) {
       onNewChat={() => {}}
       disabled={!isOnline}
       isOnline={isOnline}
+      wikiTree={
+        <WikiTree
+          entries={entries}
+          activeSlug={slug}
+          isOnline={isOnline}
+          onRenamed={() => void refresh()}
+        />
+      }
     />
   );
 

@@ -5,9 +5,11 @@ import { AppFrame } from "@/components/layout/AppFrame";
 import { Sidebar } from "@/components/chat/Sidebar";
 import { OfflineBanner } from "@/components/chat/OfflineBanner";
 import { Markdown } from "@/components/Markdown";
+import { WikiTree } from "@/components/wiki/WikiTree";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useWikiEntry } from "@/hooks/useWikiEntry";
+import { useWikiList } from "@/hooks/useWikiList";
 import { formatRelativeTime } from "@/lib/relativeTime";
 import { titleFromSlug } from "@/lib/slugify";
 
@@ -22,6 +24,7 @@ export function WikiView({ isOnline }: WikiViewProps) {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const { state, remove } = useWikiEntry({ slug, isOnline });
+  const { entries, refresh } = useWikiList({ isOnline });
 
   const sidebar = (
     <Sidebar
@@ -32,6 +35,14 @@ export function WikiView({ isOnline }: WikiViewProps) {
       onNewChat={() => {}}
       disabled={!isOnline}
       isOnline={isOnline}
+      wikiTree={
+        <WikiTree
+          entries={entries}
+          activeSlug={slug}
+          isOnline={isOnline}
+          onRenamed={() => void refresh()}
+        />
+      }
     />
   );
 

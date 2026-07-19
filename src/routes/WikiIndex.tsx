@@ -4,6 +4,7 @@ import { Plus, Search } from "lucide-react";
 import { AppFrame } from "@/components/layout/AppFrame";
 import { Sidebar } from "@/components/chat/Sidebar";
 import { OfflineBanner } from "@/components/chat/OfflineBanner";
+import { WikiTree } from "@/components/wiki/WikiTree";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useWikiList } from "@/hooks/useWikiList";
@@ -26,7 +27,7 @@ type Row = { slug: string; title: string; tags: string[] } & (
 
 export function WikiIndex({ isOnline }: WikiIndexProps) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const { entries, loading, query, setQuery, searchResults, searching } = useWikiList({ isOnline });
+  const { entries, loading, query, setQuery, searchResults, searching, refresh } = useWikiList({ isOnline });
 
   const sidebar = (
     <Sidebar
@@ -37,6 +38,7 @@ export function WikiIndex({ isOnline }: WikiIndexProps) {
       onNewChat={() => {}}
       disabled={!isOnline}
       isOnline={isOnline}
+      wikiTree={<WikiTree entries={entries} isOnline={isOnline} onRenamed={() => void refresh()} />}
     />
   );
 
