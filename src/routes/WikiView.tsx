@@ -147,6 +147,11 @@ export function WikiView({ isOnline }: WikiViewProps) {
                 Showing a cached copy.
               </p>
             )}
+            {state.entry.folder && (
+              <p className="mb-1 text-xs text-muted-foreground">
+                {state.entry.folder.split("/").join(" / ")}
+              </p>
+            )}
             <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
               {state.entry.title}
             </h1>

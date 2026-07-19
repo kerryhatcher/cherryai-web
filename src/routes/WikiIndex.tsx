@@ -20,7 +20,7 @@ function plainSnippet(html: string): string {
   return html.replace(/<[^>]+>/g, "");
 }
 
-type Row = { slug: string; title: string; tags: string[] } & (
+type Row = { slug: string; title: string; tags: string[]; folder: string } & (
   | { kind: "list"; updatedAt: string }
   | { kind: "search"; snippet: string }
 );
@@ -50,6 +50,7 @@ export function WikiIndex({ isOnline }: WikiIndexProps) {
           slug: r.slug,
           title: r.title,
           tags: r.tags,
+          folder: r.folder,
           snippet: plainSnippet(r.snippet),
         }),
       )
@@ -59,6 +60,7 @@ export function WikiIndex({ isOnline }: WikiIndexProps) {
           slug: e.slug,
           title: e.title,
           tags: e.tags,
+          folder: e.folder,
           updatedAt: e.updated_at,
         }),
       );
@@ -147,6 +149,11 @@ export function WikiIndex({ isOnline }: WikiIndexProps) {
                     </span>
                   )}
                 </div>
+                {row.folder && (
+                  <p className="mt-0.5 truncate text-[11px] text-muted-foreground/80">
+                    {row.folder.split("/").join(" / ")}
+                  </p>
+                )}
                 {row.kind === "search" && row.snippet && (
                   <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{row.snippet}</p>
                 )}
