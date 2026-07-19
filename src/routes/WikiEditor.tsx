@@ -9,8 +9,10 @@ import { WikiTree } from "@/components/wiki/WikiTree";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { createWikiEntry, updateWikiEntry, WikiTitleConflictError } from "@/api/wiki";
+import { ApiError } from "@/api/errors";
 import { useWikiEntry } from "@/hooks/useWikiEntry";
 import { useWikiList } from "@/hooks/useWikiList";
+import { folderPaths } from "@/lib/wikiTree";
 import { cn } from "@/lib/utils";
 
 interface WikiEditorProps {
@@ -37,6 +39,7 @@ export function WikiEditor({ mode, isOnline }: WikiEditorProps) {
   const [title, setTitle] = useState(() => (mode === "create" ? (searchParams.get("title") ?? "") : ""));
   const [tagsInput, setTagsInput] = useState("");
   const [body, setBody] = useState("");
+  const [folder, setFolder] = useState("");
   const [preview, setPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +52,7 @@ export function WikiEditor({ mode, isOnline }: WikiEditorProps) {
       setTitle(state.entry.title);
       setTagsInput(state.entry.tags.join(", "));
       setBody(state.entry.body);
+      setFolder(state.entry.folder);
     }
   }, [mode, state]);
 
@@ -91,19 +95,32 @@ export function WikiEditor({ mode, isOnline }: WikiEditorProps) {
     setSaving(true);
     setError(null);
     const tags = parseTags(tagsInput);
+    const trimmedFolder = folder.trim();
 
     try {
       if (mode === "create") {
-        const entry = await createWikiEntry({ title: trimmedTitle, tags, body });
+        const entry = await createWikiEntry({
+          title: trimmedTitle,
+          tags,
+          body,
+          folder: trimmedFolder,
+        });
         navigate(`/wiki/${entry.slug}`);
       } else {
-        const entry = await updateWikiEntry(slug, { title: trimmedTitle, tags, body });
+        const entry = await updateWikiEntry(slug, {
+          title: trimmedTitle,
+          tags,
+          body,
+          folder: trimmedFolder,
+        });
         navigate(`/wiki/${entry.slug}`);
       }
     } catch (err) {
       // Draft is intentionally left in place so the user doesn't lose work.
       if (err instanceof WikiTitleConflictError) {
         setError(err.message);
+      } else if (err instanceof ApiError && err.status === 400) {
+        setError("Check the folder path — it may be too deep or too long.");
       } else {
         setError("Couldn't save this page. Check your connection and try again.");
       }
@@ -161,6 +178,28 @@ export function WikiEditor({ mode, isOnline }: WikiEditorProps) {
                 placeholder="Page title"
                 className="w-full rounded-xl border border-input bg-card/80 px-3.5 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-cherry/50"
               />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="wiki-folder" className="text-xs font-medium text-muted-foreground">
+                Folder{" "}
+                <span className="font-normal text-muted-foreground/70">
+                  (optional, e.g. research/ocr)
+                </span>
+              </label>
+              <input
+                id="wiki-folder"
+                list="wiki-folder-options"
+                value={folder}
+                onChange={(event) => setFolder(event.target.value)}
+                placeholder="Leave empty for the top level"
+                className="w-full rounded-xl border border-input bg-card/80 px-3.5 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-cherry/50"
+              />
+              <datalist id="wiki-folder-options">
+                {folderPaths(entries).map((path) => (
+                  <option key={path} value={path} />
+                ))}
+              </datalist>
             </div>
 
             <div className="flex flex-col gap-1.5">
