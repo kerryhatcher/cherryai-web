@@ -52,7 +52,7 @@ export function WikiEditor({ mode, isOnline }: WikiEditorProps) {
       setTitle(state.entry.title);
       setTagsInput(state.entry.tags.join(", "));
       setBody(state.entry.body);
-      setFolder(state.entry.folder);
+      setFolder(state.entry.folder ?? "");
     }
   }, [mode, state]);
 
@@ -120,7 +120,7 @@ export function WikiEditor({ mode, isOnline }: WikiEditorProps) {
       if (err instanceof WikiTitleConflictError) {
         setError(err.message);
       } else if (err instanceof ApiError && err.status === 400) {
-        setError("Check the folder path — it may be too deep or too long.");
+        setError(err.detail ?? "Check the folder path — it may be too deep or too long.");
       } else {
         setError("Couldn't save this page. Check your connection and try again.");
       }

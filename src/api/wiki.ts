@@ -14,7 +14,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (!res.ok) {
-    throw new ApiError(`${path} responded with ${res.status}`, res.status);
+    let detail: string | undefined;
+    try {
+      const body = (await res.json()) as { detail?: string };
+      if (typeof body.detail === "string") detail = body.detail;
+    } catch {
+      // Response body was empty or not JSON — no detail to surface.
+    }
+    throw new ApiError(`${path} responded with ${res.status}`, res.status, detail);
   }
 
   if (res.status === 204) return undefined as T;

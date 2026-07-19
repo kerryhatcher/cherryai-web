@@ -87,6 +87,13 @@ export function WikiTree({ entries, activeSlug, isOnline, onRenamed }: WikiTreeP
     const trimmed = nextName.trim();
     setRenaming(null);
     if (!trimmed || trimmed === folder.name) return;
+    // Same rule the server's slugify applies per segment: a name with no
+    // alphanumeric character slugifies to "" and gets silently dropped,
+    // which would merge this folder into its parent instead of renaming it.
+    if (!/[a-z0-9]/i.test(trimmed)) {
+      setRenameError(`"${trimmed}" isn't a valid folder name — it needs at least one letter or number.`);
+      return;
+    }
     // Keeps the parent prefix ("research/") so only this segment is renamed.
     const parent = folder.path.slice(0, folder.path.length - folder.name.length);
     try {
@@ -99,7 +106,7 @@ export function WikiTree({ entries, activeSlug, isOnline, onRenamed }: WikiTreeP
         setRenameError("That folder no longer exists — refreshing.");
         onRenamed();
       } else if (err instanceof ApiError && err.status === 400) {
-        setRenameError(`"${trimmed}" isn't a valid folder name here.`);
+        setRenameError(err.detail ?? `"${trimmed}" isn't a valid folder name here.`);
       } else {
         setRenameError(`Couldn't rename "${folder.name}".`);
       }
